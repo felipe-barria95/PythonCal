@@ -6,10 +6,22 @@ from PyQt5.QtWidgets import QMainWindow
 from PyQt5.QtWidgets import QLineEdit
 from PyQt5.QtWidgets import QPushButton
 from PyQt5.QtWidgets import QGridLayout
+from functools import partial
 import sys
 
+ERROR_MSG = 'ERROR'
 
-class PyCalcUi(QMainWindow):
+def evaluateExpression(expression):
+    """Evaluate an expression."""
+    try:
+        result = str(eval(expression, {}, {}))
+    except Exception:
+        result = ERROR_MSG
+
+    return result
+
+
+class PyCalUi(QMainWindow):
     def __init__(self):
         super().__init__()
         self.setWindowTitle("PyCal by Felipe B.")
@@ -22,7 +34,6 @@ class PyCalcUi(QMainWindow):
         self._createButtons()
 
     def _createDisplay(self):
-        """Create the display."""
         self.display = QLineEdit()
         self.display.setFixedHeight(35)
         self.display.setAlignment(Qt.AlignRight)
@@ -30,7 +41,6 @@ class PyCalcUi(QMainWindow):
         self.generalLayout.addWidget(self.display)
 
     def _createButtons(self):
-        """Create the buttons."""
         self.buttons = {}
         buttonsLayout = QGridLayout()
         # Button text | position on the QGridLayout
@@ -59,14 +69,47 @@ class PyCalcUi(QMainWindow):
             self.buttons[button] = QPushButton(button)
             self.buttons[button].setFixedSize(40, 40)
             buttonsLayout.addWidget(self.buttons[button], pos[0], pos[1])
-        # Add buttonsLayout to the general layout
         self.generalLayout.addLayout(buttonsLayout)
+
+    def setDisplayText(self, text):
+        self.display.setText(text)
+        self.display.setFocus()
+
+    def displayText(self):
+        return self.display.text()
+
+    def clearDisplay(self):
+        self.setDisplayText('')
+
+class PyCalCtrl:
+    def __init__(self, view, model):
+        self._evaluate = model
+        self._view = view
+        self._connectSignals()
+
+    def _buildExpression(self, sub_exp):
+        if self._view.displayText() == ERROR_MSG:
+            self._view.clearDisplay()
+
+    def _connectSignals(self):
+        for btnText, btn in self._view.buttons.items():
+            if btnText not in {'=', 'C'}:
+                btn.clicked.connect(partial(self._buildExpression, btnText))
+        self._view.buttons['='].clicked.connect(self._calculateResult)
+        self._view.display.returnPressed.connect(self._calculateResult)
+        self._view.buttons['C'].clicked.connect(self._view.clearDisplay)
+
+    def _calculateResult(self):
+        result = self._evaluate(expression=self._view.displayText())
+        self._view.setDisplayText(result)
 
 
 def main():
     pycal = QApplication(sys.argv)
-    view = PyCalcUi()
+    view = PyCalUi()
     view.show()
+    model = evaluateExpression
+    PyCalCtrl(view=view, model=model)
     sys.exit(pycal.exec_())
 
 
