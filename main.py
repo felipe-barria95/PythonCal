@@ -11,20 +11,10 @@ import sys
 
 ERROR_MSG = 'ERROR'
 
-def evaluateExpression(expression):
-    """Evaluate an expression."""
-    try:
-        result = str(eval(expression, {}, {}))
-    except Exception:
-        result = ERROR_MSG
-
-    return result
-
-
-class PyCalUi(QMainWindow):
+class PyCalcUi(QMainWindow):
     def __init__(self):
         super().__init__()
-        self.setWindowTitle("PyCal by Felipe B.")
+        self.setWindowTitle('PyCal by Felipe B.')
         self.setFixedSize(235, 235)
         self.generalLayout = QVBoxLayout()
         self._centralWidget = QWidget(self)
@@ -43,7 +33,6 @@ class PyCalUi(QMainWindow):
     def _createButtons(self):
         self.buttons = {}
         buttonsLayout = QGridLayout()
-        # Button text | position on the QGridLayout
         buttons = {'7': (0, 0),
                    '8': (0, 1),
                    '9': (0, 2),
@@ -65,10 +54,10 @@ class PyCalUi(QMainWindow):
                    '+': (3, 3),
                    '=': (3, 4),
                    }
-        for button, pos in buttons.items():
-            self.buttons[button] = QPushButton(button)
-            self.buttons[button].setFixedSize(40, 40)
-            buttonsLayout.addWidget(self.buttons[button], pos[0], pos[1])
+        for btnText, pos in buttons.items():
+            self.buttons[btnText] = QPushButton(btnText)
+            self.buttons[btnText].setFixedSize(40, 40)
+            buttonsLayout.addWidget(self.buttons[btnText], pos[0], pos[1])
         self.generalLayout.addLayout(buttonsLayout)
 
     def setDisplayText(self, text):
@@ -81,15 +70,20 @@ class PyCalUi(QMainWindow):
     def clearDisplay(self):
         self.setDisplayText('')
 
-class PyCalCtrl:
-    def __init__(self, view, model):
-        self._evaluate = model
+class PyCalcCtrl:
+    def __init__(self, view):
         self._view = view
         self._connectSignals()
+
+    def _calculateResult(self):
+        result = self._evaluateExpression(expression=self._view.displayText())
+        self._view.setDisplayText(result)
 
     def _buildExpression(self, sub_exp):
         if self._view.displayText() == ERROR_MSG:
             self._view.clearDisplay()
+        expression = self._view.displayText() + sub_exp
+        self._view.setDisplayText(expression)
 
     def _connectSignals(self):
         for btnText, btn in self._view.buttons.items():
@@ -99,17 +93,19 @@ class PyCalCtrl:
         self._view.display.returnPressed.connect(self._calculateResult)
         self._view.buttons['C'].clicked.connect(self._view.clearDisplay)
 
-    def _calculateResult(self):
-        result = self._evaluate(expression=self._view.displayText())
-        self._view.setDisplayText(result)
+    def _evaluateExpression(self, expression):
+        try:
+            result = str(eval(expression, {}, {}))
+        except Exception:
+            result = ERROR_MSG
+        return result
 
 
 def main():
     pycal = QApplication(sys.argv)
-    view = PyCalUi()
+    view = PyCalcUi()
     view.show()
-    model = evaluateExpression
-    PyCalCtrl(view=view, model=model)
+    PyCalcCtrl(view=view)
     sys.exit(pycal.exec_())
 
 
